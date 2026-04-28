@@ -35,19 +35,6 @@ This repository contains the Part 2 dbt solution only. It addresses two issues f
 - Test patients prefixed with `TEST_` are excluded.
 - Included tests cover schema integrity, nonnegative corrected waits, and large month-over-month jumps in combined referral experience.
 
-## Run
-
-From `dbt_project/`, run `dbt deps` if needed, then run:
-
-`dbt build --select stg_consultations_fixed stg_clinical_outcomes stg_intake_flags int_referrals_classified mart_referral_rate_monthly mart_wait_time_monthly`
-
-If needed, update the `profile` in `dbt_project/dbt_project.yml` to match your local dbt profile name.
-
-## Assumptions
-
-- Raw tables are expected under `teleclinic_raw` for `consultations`, `clinical_outcomes`, and `intake_flags`.
-- Table and column names may need to be aligned to the actual warehouse schema.
-- Part 1 is submitted separately as PDF and is not part of this GitHub repository.
 
 ## AI use disclosure
 
