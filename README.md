@@ -36,6 +36,3 @@ This repository contains the Part 2 dbt solution only. It addresses two issues f
 - Included tests cover schema integrity, nonnegative corrected waits, and large month-over-month jumps in combined referral experience.
 
 
-## AI use disclosure
-
-I used an AI coding assistant to help draft parts of the SQL, tests, and written explanations. I reviewed, modified, and finalized the submission myself, including the model logic, metric definitions, and documentation. Final responsibility for the submitted work is mine.
