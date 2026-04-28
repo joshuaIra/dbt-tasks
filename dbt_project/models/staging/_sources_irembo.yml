@@ -1,0 +1,28 @@
+# Raw warehouse objects (assumed; align names with your project’s sources).
+version: 2
+
+sources:
+  - name: teleclinic_raw
+    description: "TeleClinic ingested tables"
+    database: default  # override in your dbt project
+    schema: raw
+    tables:
+      - name: consultations
+        description: "One row per consultation; timestamps from mixed app versions"
+        columns:
+          - name: consultation_id
+            description: "Primary key"
+          - name: patient_id
+          - name: created_at
+          - name: consultation_started_at
+          - name: status
+      - name: clinical_outcomes
+        description: "Clinical outcome events keyed by consultation"
+        columns:
+          - name: consultation_id
+          - name: referral_issued
+      - name: intake_flags
+        description: "Patient intake selections captured before consultation"
+        columns:
+          - name: consultation_id
+          - name: referral_requested

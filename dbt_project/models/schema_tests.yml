@@ -1,0 +1,106 @@
+# Task 3 — adapt model names to your project. Severity / store_failures in dbt 1.7+
+
+version: 2
+
+models:
+  - name: stg_consultations_fixed
+    description: "Cleaned consultations; corrected timestamps for wait + governance reporting."
+    columns:
+      - name: consultation_id
+        description: "One row per consultation; stability matters for join to outcomes and legal audit."
+        tests:
+          - not_null
+          - unique
+      - name: is_tz_corrected
+        description: "Flags app-version timezone fixes so we can slice QA on new app cohorts."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+      - name: status
+        description: "Consultation status used to keep monthly denominators scoped to completed visits."
+        tests:
+          - not_null
+      - name: wait_time_minutes
+        description: "Patient-facing service metric; null when mathematically or clinically implausible."
+        # Use singular test wait_time_nonnegative_after_correction.sql (timezone QA).
+
+  - name: stg_clinical_outcomes
+    description: "Referral outcome flags normalized to one row per consultation."
+    columns:
+      - name: consultation_id
+        tests:
+          - not_null
+          - unique
+      - name: referral_issued
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+  - name: stg_intake_flags
+    description: "Patient intake referral-request flag normalized to one row per consultation."
+    columns:
+      - name: consultation_id
+        tests:
+          - not_null
+          - unique
+      - name: referral_requested
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1]
+
+  - name: int_referrals_classified
+    description: "One classification per consult for referral analytics."
+    columns:
+      - name: consultation_id
+        description: "PK — referential integrity to consultations."
+        tests:
+          - not_null
+          - unique
+      - name: referral_class
+        description: "Drives all referral reporting; must stay in a closed set."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['both', 'doctor_referral', 'patient_requested_only', 'no_referral']
+              # description in context of health: wrong label routes wrong public reporting
+
+  - name: mart_referral_rate_monthly
+    description: "Monthly headline metrics for leadership and external stakeholders."
+    columns:
+      - name: report_month
+        description: "Grain for MoM anomaly checks."
+        tests:
+          - not_null
+          - unique
+      - name: completed_consults
+        description: "All monthly rates must use the same denominator to avoid spurious MoM % moves."
+        tests:
+          - not_null
+      - name: doctor_referral_rate
+        description: "Primary comparable clinical series — MoM test lives in tests/singular."
+        tests:
+          - not_null
+      - name: patient_request_referral_rate
+        description: "Separate product/intake signal; should always resolve for reported months."
+        tests:
+          - not_null
+
+  - name: mart_wait_time_monthly
+    description: "Monthly wait-time view after timezone normalization."
+    columns:
+      - name: report_month
+        tests:
+          - not_null
+          - unique
+      - name: completed_consults
+        tests:
+          - not_null
+      - name: corrected_wait_records
+        tests:
+          - not_null
+      - name: avg_wait_time_minutes
+        tests:
+          - not_null
