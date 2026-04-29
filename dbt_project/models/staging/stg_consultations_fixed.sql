@@ -10,6 +10,7 @@ src as (
   select
     consultation_id,
     patient_id,
+    status,
     created_at,
     consultation_started_at,
     toString(consultation_started_at) as _started_s
@@ -33,58 +34,55 @@ x as (
 
   from src
 
+),
+
+normalized as (
+
+  select
+    consultation_id,
+    patient_id,
+    status,
+    toTimeZone(toDateTime(created_at), 'UTC') as created_at_utc,
+    if(
+      is_tz_string = 1,
+      toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
+      toTimeZone(toDateTime(consultation_started_at), 'UTC')
+    ) as started_at_utc,
+    if(is_tz_string = 1, 1, 0) as is_tz_corrected
+  from x
+
 )
 
 select
   consultation_id,
   patient_id,
   status,
-  toTimeZone(toDateTime(created_at), 'UTC') as created_at_utc,
-  if(
-    is_tz_string = 1,
-    toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
-    toTimeZone(toDateTime(consultation_started_at), 'UTC')
-  ) as started_at_utc,
+  created_at_utc,
+  started_at_utc,
   coalesce(
-    if(
-      is_tz_string = 1,
-      toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
-      toTimeZone(toDateTime(consultation_started_at), 'UTC')
-    ),
-    toTimeZone(toDateTime(created_at), 'UTC')
+    started_at_utc,
+    created_at_utc
   ) as report_at_utc,
-  if(is_tz_string = 1, 1, 0) as is_tz_corrected,
+  is_tz_corrected,
   multiIf(
     dateDiff(
       'minute',
-      toTimeZone(toDateTime(created_at), 'UTC'),
-      if(
-        is_tz_string = 1,
-        toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
-        toTimeZone(toDateTime(consultation_started_at), 'UTC')
-      )
+      created_at_utc,
+      started_at_utc
     ) < 0,
     null,
     dateDiff(
       'minute',
-      toTimeZone(toDateTime(created_at), 'UTC'),
-      if(
-        is_tz_string = 1,
-        toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
-        toTimeZone(toDateTime(consultation_started_at), 'UTC')
-      )
+      created_at_utc,
+      started_at_utc
     ) > 1440,
     null,
     toFloat32(
       dateDiff(
         'minute',
-        toTimeZone(toDateTime(created_at), 'UTC'),
-        if(
-          is_tz_string = 1,
-          toTimeZone(parseDateTime64BestEffortOrNull(_started_s, 3), 'UTC'),
-          toTimeZone(toDateTime(consultation_started_at), 'UTC')
-        )
+        created_at_utc,
+        started_at_utc
       )
     )
   ) as wait_time_minutes
-from x
+from normalized
